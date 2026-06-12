@@ -1,0 +1,120 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  VILOYAT_ADMIN
+  TUMAN_ADMIN
+  USER
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Viloyat {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  tumans    Tuman[]
+  users     User[]
+  books     Book[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tuman {
+  id        String   @id @default(cuid())
+  name      String
+  viloyatId String
+  viloyat   Viloyat  @relation(fields: [viloyatId], references: [id], onDelete: Cascade)
+  users     User[]
+  books     Book[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, viloyatId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  password      String
+  role          Role      @default(USER)
+  status        UserStatus @default(PENDING)
+  viloyatId     String?
+  viloyat       Viloyat?  @relation(fields: [viloyatId], references: [id])
+  tumanId       String?
+  tuman         Tuman?    @relation(fields: [tumanId], references: [id])
+  uploadedBooks Book[]    @relation("Uploader")
+  reads         ReadHistory[]
+  favorites     FavoriteBook[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Book {
+  id            String    @id @default(cuid())
+  title         String
+  author        String
+  publisher     String?
+  publishYear   Int?
+  publishPlace  String?
+  isbn          String?
+  udk           String?
+  bbk           String?
+  language      String?
+  genre         String?
+  keywords      String?
+  annotation    String?
+  pageCount     Int?
+  
+  pdfUrl        String?
+  coverUrl      String?
+  qrCodeUrl     String?
+
+  uploaderId    String
+  uploader      User      @relation("Uploader", fields: [uploaderId], references: [id])
+  
+  viloyatId     String?
+  viloyat       Viloyat?  @relation(fields: [viloyatId], references: [id])
+  
+  tumanId       String?
+  tuman         Tuman?    @relation(fields: [tumanId], references: [id])
+
+  reads         ReadHistory[]
+  favorites     FavoriteBook[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ReadHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  readAt    DateTime @default(now())
+
+  @@unique([userId, bookId])
+}
+
+model FavoriteBook {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, bookId])
+}
