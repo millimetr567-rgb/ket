@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 
 export default async function BookDetailsPage({ params }: { params: { id: string } }) {
