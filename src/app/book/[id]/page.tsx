@@ -4,9 +4,10 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 
-export default async function BookDetailsPage({ params }: { params: { id: string } }) {
+export default async function BookDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
   const book = await prisma.book.findUnique({
-    where: { id: params.id },
+    where: { id: resolvedParams.id },
   });
 
   if (!book) {

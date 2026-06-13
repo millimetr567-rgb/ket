@@ -6,10 +6,11 @@ export const dynamic = "force-dynamic";
 export default async function CatalogPage({
   searchParams,
 }: {
-  searchParams: { search?: string; genre?: string };
+  searchParams: Promise<{ search?: string; genre?: string }>;
 }) {
-  const search = searchParams?.search || "";
-  const genre = searchParams?.genre || "";
+  const resolvedSearchParams = await searchParams;
+  const search = resolvedSearchParams?.search || "";
+  const genre = resolvedSearchParams?.genre || "";
 
   // Fetch books based on search parameters
   const books = await prisma.book.findMany({
