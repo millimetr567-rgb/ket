@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -9,6 +11,12 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !(session.user as any)?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const uploaderId = (session.user as any).id;
+
     const formData = await req.formData();
     const title = formData.get("title") as string;
     const author = formData.get("author") as string;
@@ -25,7 +33,7 @@ export async function POST(req: Request) {
     // Upload to Supabase Storage
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const fileName = \`\${Date.now()}-\${file.name.replace(/\\s+/g, "_")}\`;
+    const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("books")
@@ -52,11 +60,12 @@ export async function POST(req: Request) {
         genre,
         annotation,
         pdfUrl: publicUrl,
+        uploaderId,
       },
     });
 
     // Generate QR Code containing the book URL
-    const bookUrl = \`http://localhost:3000/book/\${newBook.id}\`;
+    const bookUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/book/${newBook.id}`;
     const qrCodeUrl = await QRCode.toDataURL(bookUrl);
 
     // Save QR code URL to DB
